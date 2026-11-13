@@ -229,4 +229,34 @@ const ui = require("../../luci-app-passwall2/htdocs/luci-static/resources/view/p
   assert.equal(ui.parseLogLine("2026 TRACE frame").level, "trace");
 }
 
-console.log("PASS: test_sni_spoofer_ui.mjs (all 6 groups)");
+// Group 7: Boot switch status normalization
+{
+  assert.equal(ui.isEnabledFlag(true), true);
+  assert.equal(ui.isEnabledFlag(1), true);
+  assert.equal(ui.isEnabledFlag("1"), true);
+  assert.equal(ui.isEnabledFlag("true"), true);
+  assert.equal(ui.isEnabledFlag(false), false);
+  assert.equal(ui.isEnabledFlag("0"), false);
+  assert.equal(ui.isEnabledFlag("false"), false);
+  assert.equal(ui.isEnabledFlag(undefined), false);
+
+  assert.equal(
+    ui.resolveBootEnabled({ enabled: true, config: { global: { enabled: "0" } } }),
+    true
+  );
+  assert.equal(
+    ui.resolveBootEnabled({ enabled: false, config: { global: { enabled: "1" } } }),
+    false
+  );
+  assert.equal(
+    ui.resolveBootEnabled({ config: { global: { enabled: "1" } } }),
+    true
+  );
+  assert.equal(
+    ui.resolveBootEnabled({ config: { global: { enabled: "0" } } }),
+    false
+  );
+  assert.equal(ui.resolveBootEnabled(null), false);
+}
+
+console.log("PASS: test_sni_spoofer_ui.mjs (all 7 groups)");

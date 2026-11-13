@@ -7,11 +7,20 @@ TMP_DIR="$(mktemp -d /tmp/pw2_rpc_test.XXXXXX)"
 PASSWALL_BAK="/tmp/pw2_rpc_uci_bak.$$"
 
 docker exec passwall2-dev cp -f /etc/config/passwall2 "$PASSWALL_BAK"
+BOOT_WAS_ENABLED="0"
+if docker exec passwall2-dev /etc/init.d/passwall2_sni_spoofer enabled >/dev/null 2>&1; then
+	BOOT_WAS_ENABLED="1"
+fi
 
 cleanup() {
 	docker exec passwall2-dev sh -c "
 		[ -f '$PASSWALL_BAK' ] && cp -f '$PASSWALL_BAK' /etc/config/passwall2 && rm -f '$PASSWALL_BAK'
 		uci revert passwall2 >/dev/null 2>&1 || true
+		if [ '$BOOT_WAS_ENABLED' = '1' ]; then
+			/etc/init.d/passwall2_sni_spoofer enable >/dev/null 2>&1 || true
+		else
+			/etc/init.d/passwall2_sni_spoofer disable >/dev/null 2>&1 || true
+		fi
 	" >/dev/null 2>&1 || true
 	rm -rf "$TMP_DIR" "$COOKIE_JAR"
 }
@@ -174,4 +183,39 @@ assert d.get("code") == 1
 assert d["data"]["total_bytes"] == 0 and d["data"]["lines"] == [], d
 ' "$TMP_DIR/log_after.json"
 
-echo "PASS: test_controller_rpc.sh (CSRF + status + save + log)"
+# 5. Boot toggle action=set_boot (enabled=1 then enabled=0) + rc.d symlink sync
+curl -fsS -b "$COOKIE_JAR" \
+	--data-urlencode "token=$TOKEN" \
+	--data-urlencode "action=set_boot" \
+	--data-urlencode "enabled=1" \
+	"${API_BASE}/sni_spoofer_control" -o "$TMP_DIR/set_boot_on.json"
+
+python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+assert d.get("code") == 1, d
+assert d["data"]["enabled"] is True, d["data"]
+assert d["data"]["config"]["global"]["enabled"] == "1", d["data"]
+' "$TMP_DIR/set_boot_on.json"
+
+docker exec passwall2-dev sh -c 'test -L /etc/rc.d/S99passwall2_sni_spoofer && [ "$(uci -q get passwall2.global_sni_spoofer.enabled)" = "1" ]' \
+	|| fail "set_boot=1 did not create S99 symlink and set UCI enabled=1"
+
+curl -fsS -b "$COOKIE_JAR" \
+	--data-urlencode "token=$TOKEN" \
+	--data-urlencode "action=set_boot" \
+	--data-urlencode "enabled=0" \
+	"${API_BASE}/sni_spoofer_control" -o "$TMP_DIR/set_boot_off.json"
+
+python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+assert d.get("code") == 1, d
+assert d["data"]["enabled"] is False, d["data"]
+assert d["data"]["config"]["global"]["enabled"] == "0", d["data"]
+' "$TMP_DIR/set_boot_off.json"
+
+docker exec passwall2-dev sh -c 'test ! -e /etc/rc.d/S99passwall2_sni_spoofer && [ "$(uci -q get passwall2.global_sni_spoofer.enabled)" = "0" ]' \
+	|| fail "set_boot=0 did not remove S99 symlink and set UCI enabled=0"
+
+echo "PASS: test_controller_rpc.sh (CSRF + status + save + log + set_boot)"

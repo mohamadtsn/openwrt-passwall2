@@ -191,7 +191,23 @@
   }
 
   function isEnabledFlag(val) {
-    return val === true || val === 1 || String(val || "0") === "1";
+    if (val === undefined || val === null) {
+      return false;
+    }
+    if (val === true || val === 1) {
+      return true;
+    }
+    var normalized = String(val).trim().toLowerCase();
+    return normalized === "1" || normalized === "true";
+  }
+
+  function resolveBootEnabled(status) {
+    var s = status && typeof status === "object" ? status : {};
+    if (s.enabled !== undefined && s.enabled !== null && s.enabled !== "") {
+      return isEnabledFlag(s.enabled);
+    }
+    var g = s.config && s.config.global ? s.config.global : {};
+    return isEnabledFlag(g.enabled);
   }
 
   function findListenerConflicts(listeners) {
@@ -699,7 +715,7 @@
       var cfg = s.config || {};
       var g = cfg.global || {};
 
-      el.bootEnabled.checked = String(s.enabled || g.enabled || "0") === "1";
+      el.bootEnabled.checked = resolveBootEnabled(s);
       el.bootEnabled.setAttribute("aria-checked", el.bootEnabled.checked ? "true" : "false");
 
       el.statusBadge.className = "ss-badge";
@@ -1213,27 +1229,35 @@
     }
 
     function runServiceAction(action, extra) {
+      function revertBootSwitch() {
+        if (action !== "set_boot") {
+          return;
+        }
+        var fallback = state.status || (state.draft ? { config: state.draft } : null);
+        el.bootEnabled.checked = resolveBootEnabled(fallback);
+        el.bootEnabled.setAttribute("aria-checked", el.bootEnabled.checked ? "true" : "false");
+      }
       setBusy(true);
       hideBanner();
       var params = Object.assign({ action: action }, extra || {});
       return apiPostForm(boot.urls.control, params)
         .then(function (res) {
-          if (res.data && res.data.status) {
-            applyServerStatus(res.data.status, false);
-          } else if (res.ok) {
-            applyServerStatus(res.data, action === "set_boot" ? false : false);
+          var nextStatus = res.data && res.data.status ? res.data.status : (res.ok ? res.data : null);
+          if (nextStatus) {
+            applyServerStatus(nextStatus, false);
           }
           if (!res.ok) {
-            if (action === "set_boot" && state.status) {
-              el.bootEnabled.checked = String(state.status.enabled || "0") === "1";
-              el.bootEnabled.setAttribute("aria-checked", el.bootEnabled.checked ? "true" : "false");
-            }
+            revertBootSwitch();
             showBanner("err", "Service action '" + action + "' failed", res.error);
             return;
+          }
+          if (action === "set_boot" && nextStatus && state.draft && state.draft.global) {
+            state.draft.global.enabled = resolveBootEnabled(nextStatus) ? "1" : "0";
           }
           showBanner("ok", "Service action completed", "Action '" + action + "' applied.");
         })
         .catch(function (err) {
+          revertBootSwitch();
           showBanner("err", "Service request failed", String(err && err.message ? err.message : err));
         })
         .finally(function () {
@@ -1772,6 +1796,8 @@
     validateConfigForm: validateConfigForm,
     buildJsonPreview: buildJsonPreview,
     splitIntoChunks: splitIntoChunks,
+    isEnabledFlag: isEnabledFlag,
+    resolveBootEnabled: resolveBootEnabled,
     parseLogLine: parseLogLine,
     formatBytes: formatBytes,
     formatUptime: formatUptime,

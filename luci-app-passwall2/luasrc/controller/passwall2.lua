@@ -1130,6 +1130,9 @@ function sni_spoofer_control()
 		end
 		cursor:set(c_config, "global_sni_spoofer", "enabled", en)
 		cursor:commit(c_config)
+		if (fs and fs.access or require("nixio.fs").access)("/etc/init.d/passwall2_sni_spoofer") then
+			os.execute("/etc/init.d/passwall2_sni_spoofer " .. (en == "1" and "enable" or "disable") .. " >/dev/null 2>&1")
+		end
 		http_write_json_ok(ss.get_status())
 	else
 		http_write_json_error({ error = "Unsupported control action" })
