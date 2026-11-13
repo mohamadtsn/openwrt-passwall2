@@ -40,6 +40,7 @@ function index()
 	if nixio.fs.access("/usr/sbin/haproxy") then
 		entry({"admin", "services", appname, "haproxy"}, cbi(appname .. "/client/haproxy"), _("Load Balancing"), 93).leaf = true
 	end
+	entry({"admin", "services", appname, "sni_spoofer"}, template(appname .. "/sni_spoofer/index"), _("SNI Spoofer"), 94).leaf = true
 	entry({"admin", "services", appname, "app_update"}, cbi(appname .. "/client/app_update"), _("App Update"), 95).leaf = true
 	entry({"admin", "services", appname, "rule"}, cbi(appname .. "/client/rule"), _("Rule Manage"), 96).leaf = true
 	if api.finded_com("geoview") then
@@ -120,6 +121,15 @@ function index()
 
 	entry({"admin", "services", appname, "fetch_certsha256"}, call("fetch_certsha256")).leaf = true
 	entry({"admin", "services", appname, "gen_wireguard_key"}, call("gen_wireguard_key")).leaf = true
+
+	--[[sni_spoofer]]
+	entry({"admin", "services", appname, "sni_spoofer_status"}, call("sni_spoofer_status")).leaf = true
+	entry({"admin", "services", appname, "sni_spoofer_control"}, call("sni_spoofer_control")).leaf = true
+	entry({"admin", "services", appname, "sni_spoofer_save"}, call("sni_spoofer_save")).leaf = true
+	entry({"admin", "services", appname, "sni_spoofer_upload"}, call("sni_spoofer_upload")).leaf = true
+	entry({"admin", "services", appname, "sni_spoofer_release_info"}, call("sni_spoofer_release_info")).leaf = true
+	entry({"admin", "services", appname, "sni_spoofer_download"}, call("sni_spoofer_download")).leaf = true
+	entry({"admin", "services", appname, "sni_spoofer_log"}, call("sni_spoofer_log")).leaf = true
 end
 
 local function http_write_json(content)
@@ -1079,4 +1089,153 @@ function gen_wireguard_key()
 	else
 		http_write_json_error()
 	end
+end
+
+local function read_sni_spoofer_json()
+	local raw = http.formvalue("payload")
+	if not raw or raw == "" then
+		raw = http.content()
+	end
+	if type(raw) ~= "string" or raw == "" then return nil end
+	local parsed = jsonParse(raw)
+	return type(parsed) == "table" and parsed or nil
+end
+
+function sni_spoofer_status()
+	local ss = require "luci.passwall2.sni_spoofer"
+	http_write_json_ok(ss.get_status())
+end
+
+function sni_spoofer_control()
+	if not luci.dispatcher.test_post_security() then return end
+	local ss = require "luci.passwall2.sni_spoofer"
+	local body = read_sni_spoofer_json() or {}
+	local action = http.formvalue("action") or body.action
+
+	if action == "start" or action == "stop" or action == "restart" then
+		local rc, out = api.exec_call("/etc/init.d/passwall2_sni_spoofer " .. action .. " 2>&1")
+		if rc ~= 0 then
+			http_write_json_error({
+				error = (type(out) == "string" and out ~= "") and out or ("Action failed: " .. tostring(action)),
+				status = ss.get_status(),
+			})
+			return
+		end
+		http_write_json_ok(ss.get_status())
+	elseif action == "set_boot" then
+		local en = tostring(http.formvalue("enabled") or body.enabled or "0") == "1" and "1" or "0"
+		local cursor = require("luci.model.uci").cursor()
+		if not cursor:get(c_config, "global_sni_spoofer") then
+			cursor:set(c_config, "global_sni_spoofer", "global_sni_spoofer")
+		end
+		cursor:set(c_config, "global_sni_spoofer", "enabled", en)
+		cursor:commit(c_config)
+		http_write_json_ok(ss.get_status())
+	else
+		http_write_json_error({ error = "Unsupported control action" })
+	end
+end
+
+function sni_spoofer_save()
+	if not luci.dispatcher.test_post_security() then return end
+	local ss = require "luci.passwall2.sni_spoofer"
+	local body = read_sni_spoofer_json()
+	if not body then
+		http_write_json_error({ error = "Invalid JSON configuration payload" })
+		return
+	end
+	local res = ss.save_config(body)
+	if not res.ok then
+		http_write_json_error({ error = "Validation failed", errors = res.errors })
+		return
+	end
+	local do_restart = (body.restart == true) or (http.formvalue("restart") == "1")
+	if do_restart then
+		local rc, out = api.exec_call("/etc/init.d/passwall2_sni_spoofer restart 2>&1")
+		if rc ~= 0 then
+			http_write_json_error({
+				error = (type(out) == "string" and out ~= "") and out or "Configuration saved, but restart failed",
+				status = ss.get_status(),
+				config = res.config,
+			})
+			return
+		end
+	end
+	http_write_json_ok(ss.get_status())
+end
+
+function sni_spoofer_upload()
+	if not luci.dispatcher.test_post_security() then return end
+	local ss = require "luci.passwall2.sni_spoofer"
+	local body = read_sni_spoofer_json() or {}
+	local res = ss.handle_upload_chunk({
+		upload_id = http.formvalue("upload_id") or body.upload_id,
+		chunk_index = http.formvalue("chunk_index") or body.chunk_index,
+		total_chunks = http.formvalue("total_chunks") or body.total_chunks,
+		chunk = http.formvalue("chunk") or body.chunk,
+		bin_path = http.formvalue("bin_path") or body.bin_path,
+		filename = http.formvalue("filename") or body.filename,
+	})
+	if res.status == "error" then
+		http_write_json_error({ error = res.message, message = res.message })
+	else
+		http_write_json_ok(res)
+	end
+end
+
+function sni_spoofer_release_info()
+	local ss = require "luci.passwall2.sni_spoofer"
+	local rel = ss.fetch_latest_release()
+	if rel.ok then
+		http_write_json_ok(rel)
+	else
+		http_write_json_error(rel)
+	end
+end
+
+function sni_spoofer_download()
+	if not luci.dispatcher.test_post_security() then return end
+	local ss = require "luci.passwall2.sni_spoofer"
+	local body = read_sni_spoofer_json() or {}
+	local task = http.formvalue("task") or body.task or "start"
+	if task == "progress" then
+		local p = ss.get_download_progress(http.formvalue("task_id") or body.task_id)
+		if p.status == "error" then
+			http_write_json_error(p)
+		else
+			http_write_json_ok(p)
+		end
+		return
+	end
+	local res = ss.start_download({
+		asset = http.formvalue("asset") or body.asset,
+		download_url = http.formvalue("download_url") or body.download_url,
+		bin_path = http.formvalue("bin_path") or body.bin_path,
+		expected_digest = http.formvalue("expected_digest") or body.expected_digest,
+		version_tag = http.formvalue("version_tag") or body.version_tag,
+		total_bytes = http.formvalue("total_bytes") or body.total_bytes,
+	})
+	if res.ok then
+		http_write_json_ok(res)
+	else
+		http_write_json_error(res)
+	end
+end
+
+function sni_spoofer_log()
+	local ss = require "luci.passwall2.sni_spoofer"
+	local method = http.getenv("REQUEST_METHOD")
+	local body = (method == "POST") and (read_sni_spoofer_json() or {}) or {}
+	local action = http.formvalue("action") or body.action
+	if method == "POST" or action == "clear" then
+		if not luci.dispatcher.test_post_security() then return end
+		if action == "clear" then
+			http_write_json_ok(ss.clear_log())
+		else
+			http_write_json_error({ error = "Unsupported log action" })
+		end
+		return
+	end
+	local limit = tonumber(http.formvalue("limit")) or 300
+	http_write_json_ok(ss.get_log(limit))
 end

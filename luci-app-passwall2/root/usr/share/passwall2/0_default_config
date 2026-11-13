@@ -226,3 +226,22 @@ config shunt_rules 'Russia'
 #rule-set:remote:https://raw.githubusercontent.com/runetfreedom/russia-v2ray-rules-dat/refs/heads/release/sing-box/rule-set-geoip/geoip-ru.srs'
 	option group 'RU'
 
+config global_sni_spoofer 'global_sni_spoofer'
+	option enabled '0'
+	option bin_path '/usr/bin/sni-spoof-rs'
+	option rust_log 'warn'
+	option buffer_size '8'
+	option graceful_shutdown_sec '0'
+	option github_asset 'sni-spoof-rs-google-wifi-armv7-musl'
+
+config sni_spoofer_listener
+	option enabled '0'
+	option remarks 'Example Cloudflare'
+	option listen '127.0.0.1:40443'
+	option connect '172.67.139.236:443'
+	option fake_sni 'security.vercel.com'
+	option conn_timeout_sec '5'
+	option handshake_timeout_sec '2'
+	option keepalive_time_sec '11'
+	option keepalive_interval_sec '2'
+

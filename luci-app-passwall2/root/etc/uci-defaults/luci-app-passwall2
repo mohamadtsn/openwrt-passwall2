@@ -1,43 +1,70 @@
 #!/bin/sh
 
-if [ -e "/etc/config/ucitrack" ]; then
+PASSWALL2_UCI_DIR="${PASSWALL2_UCI_DIR:-/etc/config}"
+SYSUPGRADE_CONF="${PASSWALL2_SYSUPGRADE_CONF:-/etc/sysupgrade.conf}"
+
+if [ "${PASSWALL2_SKIP_SYSTEM_UCI:-0}" != "1" ]; then
+	if [ -e "/etc/config/ucitrack" ]; then
+		uci -q batch <<-EOF
+			delete ucitrack.@passwall2[-1]
+			add ucitrack passwall2
+			set ucitrack.@passwall2[-1].init=passwall2
+			commit ucitrack
+EOF
+	fi
+
 	uci -q batch <<-EOF
-		delete ucitrack.@passwall2[-1]
-		add ucitrack passwall2
-		set ucitrack.@passwall2[-1].init=passwall2
-		commit ucitrack
+		delete firewall.passwall2
+		set firewall.passwall2=include
+		set firewall.passwall2.type='script'
+		set firewall.passwall2.path='/var/etc/passwall2.include'
+
+		set dhcp.@dnsmasq[0].localuse=1
+		commit dhcp
+
+		set uhttpd.main.max_requests=50
+		commit uhttpd
+EOF
+
+	if [ -x "/sbin/fw3" ]; then
+		uci -q set firewall.passwall2.reload='1'
+	else
+		uci -q delete firewall.passwall2.reload
+		uci -q delete firewall.passwall2.fw4_compatible
+	fi
+	uci commit firewall
+fi
+
+[ ! -s "$PASSWALL2_UCI_DIR/passwall2" ] && cp -f /usr/share/passwall2/0_default_config "$PASSWALL2_UCI_DIR/passwall2"
+
+if [ -s "$PASSWALL2_UCI_DIR/passwall2" ] && ! uci -c "$PASSWALL2_UCI_DIR" -q get passwall2.global_sni_spoofer >/dev/null 2>&1; then
+	uci -c "$PASSWALL2_UCI_DIR" -q batch <<-EOF
+		set passwall2.global_sni_spoofer='global_sni_spoofer'
+		set passwall2.global_sni_spoofer.enabled='0'
+		set passwall2.global_sni_spoofer.bin_path='/usr/bin/sni-spoof-rs'
+		set passwall2.global_sni_spoofer.rust_log='warn'
+		set passwall2.global_sni_spoofer.buffer_size='8'
+		set passwall2.global_sni_spoofer.graceful_shutdown_sec='0'
+		set passwall2.global_sni_spoofer.github_asset='sni-spoof-rs-google-wifi-armv7-musl'
+		commit passwall2
 EOF
 fi
 
-uci -q batch <<-EOF
-	delete firewall.passwall2
-	set firewall.passwall2=include
-	set firewall.passwall2.type='script'
-	set firewall.passwall2.path='/var/etc/passwall2.include'
-
-	set dhcp.@dnsmasq[0].localuse=1
-	commit dhcp
-
-	set uhttpd.main.max_requests=50
-	commit uhttpd
-EOF
-
-if [ -x "/sbin/fw3" ]; then
-	uci -q set firewall.passwall2.reload='1'
-else
-	uci -q delete firewall.passwall2.reload
-	uci -q delete firewall.passwall2.fw4_compatible
+SNI_BIN_PATH="$(uci -c "$PASSWALL2_UCI_DIR" -q get passwall2.global_sni_spoofer.bin_path 2>/dev/null || true)"
+[ -z "$SNI_BIN_PATH" ] && SNI_BIN_PATH="/usr/bin/sni-spoof-rs"
+if [ -d "$(dirname "$SYSUPGRADE_CONF")" ]; then
+	grep -qxF "$SNI_BIN_PATH" "$SYSUPGRADE_CONF" 2>/dev/null || printf '%s\n' "$SNI_BIN_PATH" >> "$SYSUPGRADE_CONF"
 fi
-uci commit firewall
 
-[ ! -s "/etc/config/passwall2" ] && cp -f /usr/share/passwall2/0_default_config /etc/config/passwall2
+if [ "${PASSWALL2_SKIP_SYSTEM_UCI:-0}" != "1" ]; then
+	chmod +x /usr/share/passwall2/*.sh
+	chmod 0755 /etc/init.d/passwall2_sni_spoofer 2>/dev/null || true
 
-chmod +x /usr/share/passwall2/*.sh
+	rm -rf /tmp/etc/passwall2_tmp
 
-rm -rf /tmp/etc/passwall2_tmp
-
-rm -f /tmp/luci-indexcache /tmp/luci-indexcache.*
-rm -rf /tmp/luci-modulecache
-killall -HUP rpcd 2>/dev/null
+	rm -f /tmp/luci-indexcache /tmp/luci-indexcache.*
+	rm -rf /tmp/luci-modulecache
+	killall -HUP rpcd 2>/dev/null
+fi
 
 exit 0
