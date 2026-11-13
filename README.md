@@ -13,55 +13,45 @@ PassWall2 is a powerful LuCI web interface application for OpenWrt that provides
 ```bash
 # find it in releases,base of your router Arch
 ```
-**Visit [GitHub Releases](https://github.com/Openwrt-Passwall/openwrt-passwall2/releases/latest) to download the correct package for your system.**
+**Visit [GitHub Releases](https://github.com/mohamadtsn/openwrt-passwall2/releases/latest) to download the latest `.apk` or `.ipk` package for your router.**
 
 Choose the package format based on your **router's OpenWrt package manager**:
 
-### For OpenWrt with OPKG 
+### For OpenWrt 25.12+ with APK
 
-1. **Download the IPK package** from the releases page  
-   Look for `luci-app-passwall2_{VERSION}_all.ipk` in the Assets section.  
-   > **Note:** If you need localization (Chinese/Persian), download the corresponding language package as well (e.g., `luci-i18n-passwall2-zh-cn...` or `...-fa...`).
+1. **Download the APK package** from the releases page (`luci-app-passwall2-{VERSION}-r{REL}.apk` in the Assets section).
+   > **Note:** If you need localization (Chinese/Persian/Russian), download the corresponding language package as well (e.g., `luci-i18n-passwall2-fa-{VERSION}.apk`).
 
-2. **Upload to your router** (via SCP, LuCI upload, or wget):
+2. **Install (first-time setup requires the PassWall APK repository below for dependencies; on existing PassWall 2 routers just run `apk add --allow-untrusted`):**
    ```bash
-   # Replace {VERSION} with the actual version (e.g., 26.2.5-1)
-   wget https://github.com/Openwrt-Passwall/openwrt-passwall2/releases/download/{VERSION}/luci-app-passwall2_{VERSION}_all.ipk
+   # Replace {VERSION} and {REL} with the actual release values (e.g., 26.11.11 and 2)
+   wget -O /tmp/luci-app-passwall2.apk https://github.com/mohamadtsn/openwrt-passwall2/releases/download/{VERSION}-{REL}/luci-app-passwall2-{VERSION}-r{REL}.apk
+   apk add --allow-untrusted /tmp/luci-app-passwall2.apk
+   /etc/init.d/rpcd restart
+   ```
+   > ⚠️ **Security Note:** `--allow-untrusted` bypasses package signature verification for GitHub Release APK downloads. After this one-time install, you can receive future updates directly from **Services -> PassWall 2 -> App Update** inside LuCI.
+
+### For OpenWrt 21.02–24.10 with OPKG
+
+1. **Download the IPK package** from the releases page (`luci-app-passwall2_{VERSION}-r{REL}_all.ipk` in the Assets section).
+   > **Note:** If you need localization (Chinese/Persian/Russian), download the corresponding language package as well (e.g., `luci-i18n-passwall2-fa_{VERSION}_all.ipk`).
+
+2. **Upload or download to your router:**
+   ```bash
+   # Replace {VERSION} and {REL} with the actual release values (e.g., 26.11.11 and 2)
+   wget -O /tmp/luci-app-passwall2.ipk https://github.com/mohamadtsn/openwrt-passwall2/releases/download/{VERSION}-{REL}/luci-app-passwall2_{VERSION}-r{REL}_all.ipk
    ```
 
 3. **Install:**
    ```bash
    opkg update
-   opkg install luci-app-passwall2_*.ipk
+   opkg install /tmp/luci-app-passwall2.ipk
+   /etc/init.d/rpcd restart
    ```
    
-   > If installation fails due to missing dependencies (e.g., `xray-core`), you need to add the PassWall packages feed to `/etc/opkg/customfeeds.conf`.
+   > If installation fails due to missing dependencies (e.g., `xray-core`), add the PassWall packages feed to `/etc/opkg/customfeeds.conf` first. Subsequent updates can also be applied directly via **Services -> PassWall 2 -> App Update**.
 
-### For OpenWrt with APK 
-
-1. **Download the APK package** from the releases page  
-   Look for `luci-app-passwall2_{VERSION}_all.apk` in the Assets section.
-   > **Note:** If you need localization (Chinese/Persian), download the corresponding language package as well (e.g., `luci-i18n-passwall2-zh-cn...` or `...-fa...`).
-
-2. **Upload to your router** (via SCP, LuCI upload, or wget):
-   ```bash
-   # Replace {VERSION} with the actual version (e.g., 26.2.5-1)
-   wget https://github.com/Openwrt-Passwall/openwrt-passwall2/releases/download/{VERSION}/luci-app-passwall2_{VERSION}_all.apk
-   ```
-
-3. **Install:**
-   ```bash
-   apk add --allow-untrusted luci-app-passwall2_*.apk
-   ```
-   
-   > ⚠️ **Security Note:** `--allow-untrusted` bypasses package signature verification. 
-
-> **How to check your package manager:** Run `opkg --version` or `apk --version` to see which one your router uses.
-
-### Restart LuCI
-```bash
-/etc/init.d/rpcd restart
-```
+> **How to check your package manager:** Run `command -v apk` or `command -v opkg` to see which one your router uses.
 
 ### 🧩 Add PassWall2 APK repository (recommended)
 **Instead of installing .apk packages manually**, you can add the PassWall2 APK repository and signing key to enable installation and updates via apk.
@@ -148,6 +138,7 @@ Selected during installation based on your needs:
 - **Smart Routing**: Domain-based and geo-based routing rules
 - **DNS Control**: Advanced DNS filtering and DoH/DoT support
 - **Transparent Proxy**: Seamless network-wide proxy
+- **SNI Spoofer (`sni-spoof-rs`)**: Integrated procd service manager, binary downloader/uploader, multi-listener configuration, and live log viewer in LuCI
 
 ### Node Management
 - **Subscription Support**: Import nodes from subscription URLs

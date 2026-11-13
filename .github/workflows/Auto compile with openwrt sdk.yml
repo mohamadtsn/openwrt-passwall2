@@ -4,6 +4,12 @@
 #
 name: "Auto compile with openwrt sdk"
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'luci-app-passwall2/**'
+      - '.github/workflows/Auto compile with openwrt sdk.yml'
   repository_dispatch:
   workflow_dispatch:
     inputs:
@@ -11,6 +17,16 @@ on:
         description: 'SSH connection to Actions'
         required: false
         default: 'false'
+      force:
+        description: 'Force build and update release even if tag already exists'
+        required: false
+        default: false
+        type: boolean
+      build_packages:
+        description: 'Also build passwall-packages matrix (all 13 architectures)'
+        required: false
+        default: false
+        type: boolean
 env:
   TZ: Asia/Shanghai
   passwall2: ${{ github.repository }}
@@ -40,6 +56,7 @@ jobs:
       - name: Check version
         id: check_version
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           url_tags: https://api.github.com/repos/${{ env.passwall2 }}/releases/latest
         run: |
           cd luci-app-passwall2
@@ -49,10 +66,16 @@ jobs:
           prerelease=$([ "${{ github.ref_name }}" == "main" ] && echo false || echo true)
           echo "prerelease=${prerelease}" >> $GITHUB_OUTPUT
 
-          remote_latest_version=$(wget -qO- -t1 -T2 ${{env.url_tags}} | jq -r '.tag_name')
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "Force release requested"
+            echo "has_update=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          remote_latest_version=$(curl -fsSL --max-time 10 -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "${{ env.url_tags }}" | jq -r '.tag_name // empty' || true)
 
           if [ -z "$remote_latest_version" ] || [ "$remote_latest_version" = "null" ]; then
-            echo "Failed to fetch remote tags"
+            echo "No published release found yet"
             echo "has_update=true" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -111,8 +134,11 @@ jobs:
 
       - name: Initialization environment
         run: |
-          url_sdk="https://downloads.openwrt.org/snapshots/targets/x86/64/openwrt-sdk-x86-64_gcc-14.4.0_musl.Linux-x86_64.tar.zst"
-          wget $url_sdk
+          sdk_dir="https://downloads.openwrt.org/snapshots/targets/x86/64"
+          sdk_file=$(curl -fsSL "${sdk_dir}/sha256sums" | awk '/openwrt-sdk-.*Linux-x86_64\.tar\.(zst|xz)/ {sub(/^\*/, "", $2); print $2; exit}')
+          [ -n "$sdk_file" ] || { echo "Failed to resolve snapshot SDK tarball"; exit 1; }
+          url_sdk="${sdk_dir}/${sdk_file}"
+          wget "$url_sdk"
           file_name=$(echo $url_sdk | awk -F/ '{print $NF}')
           mkdir sdk
           if [[ $file_name == *.tar.xz ]]; then
@@ -211,8 +237,12 @@ jobs:
         id: compile_ipk
         run: |
           cd sdk
-          config_apk_line=$(grep -n "USE_APK" Config-build.in | awk -F ':' '{print $1}')
-          [ -n "$config_apk_line" ] && sed -n $(expr ${config_apk_line} + 2)p Config-build.in | grep "default y" >/dev/null ; [ $? == 0 ] && sed -i "$(expr ${config_apk_line} + 2)s/y/n/" Config-build.in
+          rm -rf upload bin tmp
+          for cfg_in in Config-build.in config/Config-build.in; do
+            [ -f "$cfg_in" ] && sed -i '/^[[:space:]]*config USE_APK$/,/^[[:space:]]*$/s/default y/default n/' "$cfg_in"
+          done
+          sed -i '/CONFIG_USE_APK/d' .config
+          echo "CONFIG_USE_APK=n" >> .config
           make defconfig
           echo "make package/luci-app-passwall2/{clean,compile} -j$(nproc)"
           make package/luci-app-passwall2/{clean,compile} -j$(nproc) V=s || make package/luci-app-passwall2/{clean,compile} -j1 V=s
@@ -232,11 +262,53 @@ jobs:
           tag_name: ${{needs.job_check.outputs.passwall2_version}}
           files: ${{ env.FIRMWARE }}/*
 
+      - name: Generate passwall2-release-api.json
+        id: generate_api_cache
+        if: steps.compile_ipk.outputs.status == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p api_cache
+          tag="${{ needs.job_check.outputs.passwall2_version }}"
+          repo="${{ env.passwall2 }}"
+          for attempt in 1 2 3 4 5; do
+            curl -fsSL \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${repo}/releases/tags/${tag}" \
+              -o api_cache/passwall2-release-api.json
+            if python3 - api_cache/passwall2-release-api.json <<'PY'
+          import json, sys
+          d = json.load(open(sys.argv[1], encoding="utf-8"))
+          assets = [a for a in d.get("assets", []) if a.get("name", "").startswith("luci-app-passwall2")]
+          apk_ok = any(a["name"].endswith(".apk") and isinstance(a.get("digest"), str) and a["digest"].startswith("sha256:") for a in assets)
+          ipk_ok = any(a["name"].endswith(".ipk") and isinstance(a.get("digest"), str) and a["digest"].startswith("sha256:") for a in assets)
+          if not (apk_ok and ipk_ok):
+              sys.exit(1)
+          PY
+            then
+              echo "status=success" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            [ "$attempt" -lt 5 ] && sleep 3
+          done
+          echo "Timed out waiting for GitHub release asset digests"
+          exit 1
+
+      - name: Upload passwall2-release-api.json
+        if: steps.generate_api_cache.outputs.status == 'success'
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.job_check.outputs.passwall2_version }}
+          files: api_cache/passwall2-release-api.json
+
 
   job_trigger_packages_cache:
     name: Trigger packages cache workflow
     needs: job_build_passwall2
-    if: ${{ needs.job_build_passwall2.result == 'success' }}
+    if: ${{ needs.job_build_passwall2.result == 'success' && github.repository == 'Openwrt-Passwall/openwrt-passwall2' }}
     runs-on: ubuntu-26.04
     steps:
       - name: Dispatch Auto Cache Software Release JSONs
@@ -249,7 +321,7 @@ jobs:
 
 
   job_auto_compile:
-    if: ${{ needs.job_check.outputs.has_update == 'true' && needs.job_check.outputs.prerelease == 'false' }}
+    if: ${{ needs.job_check.outputs.has_update == 'true' && needs.job_check.outputs.prerelease == 'false' && (github.repository == 'Openwrt-Passwall/openwrt-passwall2' || inputs.build_packages == true) }}
     needs: job_check
     runs-on: ubuntu-26.04
     name: build (${{ matrix.platform }})

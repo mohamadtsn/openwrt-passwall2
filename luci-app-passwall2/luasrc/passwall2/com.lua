@@ -19,7 +19,10 @@ _M.order = {
 -- The LuCI package has its own update flow and is not a binary component.
 _M.passwall2 = {
 	name = "PassWall2",
-	get_url = gh_release_url
+	repo = "mohamadtsn/openwrt-passwall2",
+	get_url = function(self)
+		return "https://github.com/" .. self.repo .. "/releases/latest/download/passwall2-release-api.json"
+	end
 }
 
 _M["sing-box"] = {

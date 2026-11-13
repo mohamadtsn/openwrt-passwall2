@@ -349,4 +349,15 @@ assert_eq(parsed.idle_timeout, nil, "runtime JSON omits nil idle_timeout")
 
 nixio.fs.remover(tmp)
 os.execute("rm -rf " .. tmp)
-print("PASS: test_sni_spoofer.lua (all 8 groups)")
+
+-- Group 9: Official App Update release metadata endpoint in com.lua
+package.loaded["luci.passwall2.com"] = nil
+local com = require "luci.passwall2.com"
+assert_eq(com.passwall2.repo, "mohamadtsn/openwrt-passwall2", "com.passwall2 repo configured")
+assert_eq(
+	com.passwall2:get_url(),
+	"https://github.com/mohamadtsn/openwrt-passwall2/releases/latest/download/passwall2-release-api.json",
+	"com.passwall2 release API URL points to fork latest release asset"
+)
+
+print("PASS: test_sni_spoofer.lua (all 9 groups)")
