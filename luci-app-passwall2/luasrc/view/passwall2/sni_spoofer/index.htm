@@ -1,0 +1,371 @@
+<%
+local disp = require "luci.dispatcher"
+local jsonc = require "luci.jsonc"
+local i18n = require "luci.i18n"
+
+local boot_token = (type(token) == "string" and token ~= "" and token)
+	or (disp.context and disp.context.authtoken)
+	or ""
+
+local boot_cfg = {
+	token = boot_token,
+	urls = {
+		status = disp.build_url("admin", "services", "passwall2", "sni_spoofer_status"),
+		control = disp.build_url("admin", "services", "passwall2", "sni_spoofer_control"),
+		save = disp.build_url("admin", "services", "passwall2", "sni_spoofer_save"),
+		upload = disp.build_url("admin", "services", "passwall2", "sni_spoofer_upload"),
+		release_info = disp.build_url("admin", "services", "passwall2", "sni_spoofer_release_info"),
+		download = disp.build_url("admin", "services", "passwall2", "sni_spoofer_download"),
+		log = disp.build_url("admin", "services", "passwall2", "sni_spoofer_log"),
+	},
+	i18n = {
+		running = i18n.translate("Running"),
+		stopped = i18n.translate("Stopped"),
+		missing = i18n.translate("Binary Missing"),
+		loading = i18n.translate("Loading..."),
+		crossArch = i18n.translate("Arch Mismatch"),
+		compatible = i18n.translate("Compatible"),
+		helpPassed = i18n.translate("Passed"),
+		helpSkipped = i18n.translate("Skipped (cross-arch binary)"),
+		helpFailed = i18n.translate("Failed"),
+		recommended = i18n.translate("recommended"),
+		unsaved = i18n.translate("Unsaved changes"),
+		synced = i18n.translate("Saved"),
+		copyJson = i18n.translate("Copy JSON"),
+		copied = i18n.translate("Copied"),
+		copyLog = i18n.translate("Copy Log"),
+		emptyListeners = i18n.translate("No listeners configured yet. Add a listener defining Listen IP:Port, Connect IP:Port, and Fake SNI."),
+		addFirstListener = i18n.translate("Add First Listener"),
+		emptyLogs = i18n.translate("No log entries yet. Start the service or handle connections to inspect output."),
+		loadingLogs = i18n.translate("Loading service logs..."),
+		remarks = i18n.translate("Remarks"),
+		listen = i18n.translate("Listen IP:Port"),
+		connect = i18n.translate("Connect IP:Port"),
+		fakeSni = i18n.translate("Fake SNI Hostname"),
+		enabled = i18n.translate("Enabled"),
+		disabled = i18n.translate("Disabled"),
+		enabledSummary = i18n.translate("enabled"),
+		duplicate = i18n.translate("Duplicate"),
+		remove = i18n.translate("Remove"),
+		advancedTimeouts = i18n.translate("Advanced Timeouts"),
+		connTimeout = i18n.translate("Connect Timeout (sec)"),
+		handshakeTimeout = i18n.translate("Handshake Timeout (sec)"),
+		keepaliveTime = i18n.translate("Keepalive Time (sec)"),
+		keepaliveInterval = i18n.translate("Keepalive Interval (sec)"),
+	},
+}
+
+local boot_json = jsonc.stringify(boot_cfg) or "{}"
+boot_json = boot_json:gsub("</", "<\\/")
+-%>
+<%+header%>
+<link rel="stylesheet" href="<%=resource%>/view/passwall2/sni_spoofer.css?v=3" />
+
+<div id="sni-spoofer-app" class="sni-spoofer-page cbi-map">
+	<div class="ss-map-head">
+		<h2 class="ss-map-title" name="content"><%:SNI Spoofer%></h2>
+		<div class="ss-map-descr"><%:Independent TCP SNI spoofing proxy daemon (sni-spoof-rs)%></div>
+	</div>
+
+	<div id="ss-global-banner" class="ss-alert" role="status" aria-live="polite" hidden></div>
+
+	<div class="ss-stack">
+		<!-- Section 0: Service Status & Controls -->
+		<fieldset class="cbi-section ss-section" aria-labelledby="ss-card-status-title">
+			<legend id="ss-card-status-title" class="ss-sr-only"><%:Service Status%></legend>
+			<div class="ss-header" role="region" aria-label="<%:SNI Spoofer Controls%>">
+				<div class="ss-row-inline">
+					<span id="ss-status-badge" class="ss-badge" role="status" aria-live="polite">
+						<span class="ss-badge-dot" aria-hidden="true"></span>
+						<span id="ss-status-text"><%:Loading...%></span>
+					</span>
+					<span class="ss-badge">
+						<span><%:PID%>:</span>
+						<code id="ss-header-pid" class="ss-mono ss-ltr">-</code>
+					</span>
+					<span class="ss-badge">
+						<span><%:Uptime%>:</span>
+						<code id="ss-header-uptime" class="ss-mono ss-ltr">-</code>
+					</span>
+				</div>
+				<div class="ss-header-controls">
+					<label class="ss-switch" for="ss-boot-enabled">
+						<input id="ss-boot-enabled" type="checkbox" role="switch" class="ss-switch-input" />
+						<span class="ss-switch-track" aria-hidden="true"><span class="ss-switch-thumb"></span></span>
+						<span><%:Enable at Boot%></span>
+					</label>
+					<div class="ss-actions">
+						<button id="ss-btn-start" type="button" class="ss-btn ss-btn-primary"><%:Start%></button>
+						<button id="ss-btn-stop" type="button" class="ss-btn ss-btn-danger"><%:Stop%></button>
+						<button id="ss-btn-restart" type="button" class="ss-btn"><%:Restart%></button>
+						<button id="ss-btn-refresh" type="button" class="ss-btn"><%:Refresh%></button>
+					</div>
+				</div>
+			</div>
+		</fieldset>
+
+		<!-- Section 1: Binary Manager -->
+		<fieldset class="cbi-section ss-section" aria-labelledby="ss-card-binary-title">
+			<legend class="ss-sr-only"><%:Binary Manager%></legend>
+			<div class="ss-card-header">
+				<div>
+					<h3 id="ss-card-binary-title" class="ss-card-title"><%:Binary Manager%></h3>
+					<p class="ss-card-subtitle"><%:Executable verification, GitHub Release download, or local upload%></p>
+				</div>
+				<span id="ss-arch-badge" class="ss-badge ss-ltr">-</span>
+			</div>
+
+			<dl class="ss-kv-grid">
+				<div class="ss-kv-cell">
+					<dt class="ss-kv-label"><%:Binary Path%></dt>
+					<dd id="ss-kv-bin-path" class="ss-kv-value ss-mono ss-ltr">-</dd>
+				</div>
+				<div class="ss-kv-cell">
+					<dt class="ss-kv-label"><%:Host Architecture%></dt>
+					<dd id="ss-kv-host-arch" class="ss-kv-value ss-mono ss-ltr">-</dd>
+				</div>
+				<div class="ss-kv-cell">
+					<dt class="ss-kv-label"><%:ELF Inspection%></dt>
+					<dd id="ss-kv-elf" class="ss-kv-value ss-ltr">-</dd>
+				</div>
+				<div class="ss-kv-cell">
+					<dt class="ss-kv-label"><%:--help Probe%></dt>
+					<dd id="ss-kv-help" class="ss-kv-value">-</dd>
+				</div>
+				<div class="ss-kv-cell">
+					<dt class="ss-kv-label"><%:Version Tag%></dt>
+					<dd id="ss-kv-version" class="ss-kv-value ss-mono ss-ltr">-</dd>
+				</div>
+				<div class="ss-kv-cell">
+					<dt class="ss-kv-label"><%:Size & SHA-256%></dt>
+					<dd id="ss-kv-sha256" class="ss-kv-value ss-mono ss-ltr">-</dd>
+				</div>
+			</dl>
+
+			<div id="ss-binary-warning" class="ss-alert ss-alert-warn" hidden></div>
+
+			<div class="ss-tabs" role="tablist" aria-label="<%:Binary installation methods%>">
+				<button id="ss-tab-btn-release" type="button" class="ss-tab" role="tab" aria-selected="true" aria-controls="ss-tab-panel-release"><%:GitHub Release%></button>
+				<button id="ss-tab-btn-upload" type="button" class="ss-tab" role="tab" aria-selected="false" aria-controls="ss-tab-panel-upload" tabindex="-1"><%:Local Upload%></button>
+			</div>
+
+			<div id="ss-tab-panel-release" class="ss-tabpanel" role="tabpanel" aria-labelledby="ss-tab-btn-release">
+				<div class="ss-cbi-rows">
+					<div class="ss-cbi-value">
+						<div class="ss-cbi-title">
+							<label class="ss-label" for="ss-release-asset"><%:Release Asset Target%></label>
+						</div>
+						<div class="ss-cbi-field">
+							<div class="ss-select-wrap">
+								<select id="ss-release-asset" class="ss-select ss-ltr">
+									<option value="sni-spoof-rs-google-wifi-armv7-musl">sni-spoof-rs-google-wifi-armv7-musl (Google WiFi ARMv7 musl)</option>
+									<option value="sni-spoof-rs-linux-amd64-musl">sni-spoof-rs-linux-amd64-musl (x86_64 Linux / Docker)</option>
+									<option value="sni-spoof-rs-linux-arm64">sni-spoof-rs-linux-arm64 (ARM64 / aarch64)</option>
+								</select>
+							</div>
+							<span id="ss-release-meta" class="ss-hint ss-ltr"></span>
+							<p class="ss-hint"><%:Downloads directly from GitHub Releases and registers bin_path in /etc/sysupgrade.conf.%></p>
+						</div>
+					</div>
+					<div class="ss-cbi-value">
+						<div class="ss-cbi-title" aria-hidden="true"></div>
+						<div class="ss-cbi-field">
+							<div class="ss-row-inline">
+								<button id="ss-btn-check-release" type="button" class="ss-btn"><%:Check Release%></button>
+								<button id="ss-btn-download" type="button" class="ss-btn ss-btn-primary"><%:Download & Install%></button>
+								<a id="ss-release-link" class="ss-link" href="https://github.com/mohamadtsn/sni-spoofing-rust/releases" target="_blank" rel="noopener noreferrer"><%:View Releases%></a>
+							</div>
+							<div id="ss-dl-progress-wrap" class="ss-progress-wrap" hidden>
+								<div class="ss-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="ss-dl-progressbar">
+									<div id="ss-dl-progress-fill" class="ss-progress-fill"></div>
+								</div>
+								<span id="ss-dl-progress-text" class="ss-progress-text ss-ltr"></span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div id="ss-tab-panel-upload" class="ss-tabpanel" role="tabpanel" aria-labelledby="ss-tab-btn-upload" hidden>
+				<div class="ss-cbi-rows">
+					<div class="ss-cbi-value">
+						<div class="ss-cbi-title">
+							<label class="ss-label" for="ss-upload-file"><%:Select Compiled Executable Binary%></label>
+						</div>
+						<div class="ss-cbi-field">
+							<input id="ss-upload-file" type="file" class="ss-input ss-ltr" />
+							<p id="ss-upload-hint" class="ss-hint"><%:Uploads in 24 KiB Base64 chunks, validates ELF magic, chmod 0755, and registers in /etc/sysupgrade.conf.%></p>
+						</div>
+					</div>
+					<div class="ss-cbi-value">
+						<div class="ss-cbi-title" aria-hidden="true"></div>
+						<div class="ss-cbi-field">
+							<div class="ss-row-inline">
+								<button id="ss-btn-upload" type="button" class="ss-btn ss-btn-primary" disabled><%:Upload & Install%></button>
+								<span id="ss-upload-file-meta" class="ss-hint ss-ltr"></span>
+							</div>
+							<div id="ss-ul-progress-wrap" class="ss-progress-wrap" hidden>
+								<div class="ss-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="ss-ul-progressbar">
+									<div id="ss-ul-progress-fill" class="ss-progress-fill"></div>
+								</div>
+								<span id="ss-ul-progress-text" class="ss-progress-text ss-ltr"></span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</fieldset>
+
+		<!-- Section 2: Global Settings -->
+		<fieldset class="cbi-section ss-section" aria-labelledby="ss-card-global-title">
+			<legend class="ss-sr-only"><%:Global Settings%></legend>
+			<div class="ss-card-header">
+				<div>
+					<h3 id="ss-card-global-title" class="ss-card-title"><%:Global Settings%></h3>
+					<p class="ss-card-subtitle"><%:Daemon path, logging verbosity, buffer sizing, and lifecycle timers%></p>
+				</div>
+				<span id="ss-dirty-badge" class="ss-badge" aria-live="polite"><%:Saved%></span>
+			</div>
+
+			<div class="ss-cbi-rows">
+				<div class="ss-cbi-value">
+					<div class="ss-cbi-title">
+						<label class="ss-label" for="ss-g-bin-path"><%:Binary Path%></label>
+					</div>
+					<div class="ss-cbi-field">
+						<input id="ss-g-bin-path" type="text" dir="ltr" class="ss-input ss-mono ss-ltr" placeholder="/usr/bin/sni-spoof-rs" />
+						<span id="ss-err-global-bin_path" class="ss-field-error" hidden></span>
+						<p class="ss-hint"><%:Absolute path persisted across sysupgrade. Changing this updates where uploads and downloads install.%></p>
+					</div>
+				</div>
+
+				<div class="ss-cbi-value">
+					<div class="ss-cbi-title">
+						<label class="ss-label" for="ss-g-rust-log"><%:Log Level (RUST_LOG)%></label>
+					</div>
+					<div class="ss-cbi-field">
+						<div class="ss-select-wrap">
+							<select id="ss-g-rust-log" class="ss-select ss-ltr">
+								<option value="error">error</option>
+								<option value="warn">warn</option>
+								<option value="info">info</option>
+								<option value="debug">debug</option>
+								<option value="trace">trace</option>
+							</select>
+						</div>
+						<span id="ss-err-global-rust_log" class="ss-field-error" hidden></span>
+					</div>
+				</div>
+
+				<div class="ss-cbi-value">
+					<div class="ss-cbi-title">
+						<label class="ss-label" for="ss-g-buffer-size"><%:Buffer Size (KiB)%></label>
+					</div>
+					<div class="ss-cbi-field">
+						<input id="ss-g-buffer-size" type="number" min="1" max="1024" step="1" dir="ltr" class="ss-input ss-mono ss-ltr" />
+						<span id="ss-err-global-buffer_size" class="ss-field-error" hidden></span>
+						<p class="ss-hint"><%:Written as buffer_size in config.json (1 to 1024 KiB, default 8).%></p>
+					</div>
+				</div>
+
+				<div class="ss-cbi-value">
+					<div class="ss-cbi-title">
+						<label class="ss-label" for="ss-g-idle-timeout"><%:Idle Timeout (sec, optional)%></label>
+					</div>
+					<div class="ss-cbi-field">
+						<input id="ss-g-idle-timeout" type="number" min="1" step="1" dir="ltr" class="ss-input ss-mono ss-ltr" placeholder="<%:Omitted when empty%>" />
+						<span id="ss-err-global-idle_timeout" class="ss-field-error" hidden></span>
+					</div>
+				</div>
+
+				<div class="ss-cbi-value">
+					<div class="ss-cbi-title">
+						<label class="ss-label" for="ss-g-graceful-shutdown"><%:Graceful Shutdown (sec)%></label>
+					</div>
+					<div class="ss-cbi-field">
+						<input id="ss-g-graceful-shutdown" type="number" min="0" max="3600" step="1" dir="ltr" class="ss-input ss-mono ss-ltr" />
+						<span id="ss-err-global-graceful_shutdown_sec" class="ss-field-error" hidden></span>
+					</div>
+				</div>
+			</div>
+		</fieldset>
+
+		<!-- Section 3: Listeners & Runtime config.json Preview -->
+		<fieldset class="cbi-section ss-section" aria-labelledby="ss-card-listeners-title">
+			<legend class="ss-sr-only"><%:Listeners Configuration%></legend>
+			<div class="ss-card-header">
+				<div>
+					<h3 id="ss-card-listeners-title" class="ss-card-title"><%:Listeners Configuration%></h3>
+					<p class="ss-card-subtitle"><%:Each enabled listener accepts TLS ClientHello on Listen IP:Port and rewrites SNI before forwarding to Connect IP:Port.%></p>
+				</div>
+				<div class="ss-row-inline">
+					<span id="ss-listeners-summary" class="ss-badge ss-badge-muted ss-ltr">0 / 0 <%:enabled%></span>
+					<button id="ss-btn-add-listener" type="button" class="ss-btn ss-btn-primary"><%:Add Listener%></button>
+				</div>
+			</div>
+
+			<div id="ss-validation-summary" class="ss-alert ss-alert-err" role="alert" hidden></div>
+
+			<div id="ss-listeners-container" class="ss-listeners-list"></div>
+
+			<details id="ss-json-details" style="margin-top: 14px;">
+				<summary class="ss-section-heading"><%:Generated config.json Preview%></summary>
+				<div style="margin-top: 10px;">
+					<div class="ss-row-inline" style="justify-content: flex-end; margin-bottom: 6px;">
+						<button id="ss-btn-copy-json" type="button" class="ss-btn ss-btn-sm"><%:Copy JSON%></button>
+					</div>
+					<pre id="ss-json-preview" class="ss-json-preview ss-ltr">{}</pre>
+				</div>
+			</details>
+
+			<div class="ss-form-footer cbi-page-actions">
+				<button id="ss-btn-reset" type="button" class="ss-btn ss-btn-outline-danger"><%:Reset%></button>
+				<button id="ss-btn-save" type="button" class="ss-btn ss-btn-save"><%:Save%></button>
+				<button id="ss-btn-save-restart" type="button" class="ss-btn ss-btn-primary"><%:Save & Restart%></button>
+			</div>
+		</fieldset>
+
+		<!-- Section 4: Live Log Console -->
+		<fieldset class="cbi-section ss-section" aria-labelledby="ss-card-logs-title">
+			<legend class="ss-sr-only"><%:Service Logs%></legend>
+			<div class="ss-card-header">
+				<div>
+					<h3 id="ss-card-logs-title" class="ss-card-title"><%:Service Logs%></h3>
+					<p class="ss-card-subtitle"><%:Plaintext output captured with NO_COLOR=1 and capped at 256 KiB%></p>
+				</div>
+				<div class="ss-row-inline">
+					<label class="ss-checkbox-label" for="ss-log-autorefresh">
+						<input id="ss-log-autorefresh" type="checkbox" checked />
+						<span><%:Auto-refresh (2.5s)%></span>
+					</label>
+					<label class="ss-checkbox-label" for="ss-log-autoscroll">
+						<input id="ss-log-autoscroll" type="checkbox" checked />
+						<span><%:Auto-scroll%></span>
+					</label>
+					<label class="ss-sr-only" for="ss-log-level-filter"><%:Filter Log Level%></label>
+					<div class="ss-select-wrap" style="width: auto; min-width: 118px;">
+						<select id="ss-log-level-filter" class="ss-select ss-ltr">
+							<option value="all"><%:All Levels%></option>
+							<option value="error">ERROR</option>
+							<option value="warn">WARN</option>
+							<option value="info">INFO</option>
+							<option value="debug">DEBUG</option>
+							<option value="trace">TRACE</option>
+						</select>
+					</div>
+					<span id="ss-log-bytes-badge" class="ss-badge ss-mono ss-ltr">0 B</span>
+					<button id="ss-btn-log-refresh" type="button" class="ss-btn ss-btn-sm"><%:Refresh%></button>
+					<button id="ss-btn-log-copy" type="button" class="ss-btn ss-btn-sm"><%:Copy Log%></button>
+					<button id="ss-btn-log-clear" type="button" class="ss-btn ss-btn-outline-danger ss-btn-sm"><%:Clear Log%></button>
+				</div>
+			</div>
+
+			<div id="ss-log-error" class="ss-alert ss-alert-err" role="alert" hidden></div>
+			<pre id="ss-log-console" class="ss-console ss-ltr" role="log" aria-live="off"><span class="ss-console-muted"><%:Loading service logs...%></span></pre>
+		</fieldset>
+	</div>
+</div>
+
+<script type="application/json" id="sni-spoofer-boot"><%=boot_json%></script>
+<script src="<%=resource%>/view/passwall2/sni_spoofer.js?v=3"></script>
+<%+footer%>

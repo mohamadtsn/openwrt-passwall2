@@ -1,0 +1,1034 @@
+/* PassWall2 SNI Spoofer View Styles (Harmonized with OpenWrt LuCI Light/Dark) */
+
+.sni-spoofer-page {
+  --ss-bg: #ffffff;
+  --ss-surface: #ffffff;
+  --ss-surface-muted: #f5f5f5;
+  --ss-text: #1f2328;
+  --ss-text-muted: #57606a;
+  --ss-border: #d4d4d4;
+  --ss-control-border: #737373;
+  --ss-accent: #1565c0;
+  --ss-accent-hover: #0d47a1;
+  --ss-accent-text: #ffffff;
+  --ss-link: #1565c0;
+  --ss-focus: #1565c0;
+  --ss-save: #007936;
+  --ss-save-hover: #005a28;
+  --ss-save-text: #ffffff;
+  --ss-ok-bg: #eafaf1;
+  --ss-ok-border: #007936;
+  --ss-ok-text: #005a28;
+  --ss-warn-bg: #fef9e7;
+  --ss-warn-border: #9a6700;
+  --ss-warn-text: #7a4b00;
+  --ss-err-bg: #fdecec;
+  --ss-err-border: #c62828;
+  --ss-err-text: #991b1b;
+  --ss-danger: #c62828;
+  --ss-danger-hover: #a61b1b;
+  --ss-log-bg: #18181b;
+  --ss-log-text: #f4f4f5;
+  --ss-log-muted: #a1a1aa;
+  --ss-log-warn: #fbbf24;
+  --ss-log-err: #fca5a5;
+  --ss-radius: 4px;
+  --ss-radius-sm: 3px;
+  --ss-font-sans: inherit;
+  --ss-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  background: transparent;
+  color: var(--ss-text);
+  font-family: var(--ss-font-sans);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  margin: 0 0 20px 0;
+}
+
+/* OpenWrt 24.10 LuCI explicit dark attributes + media dark fallback (neutral charcoal matching Bootstrap/Argon) */
+:root[data-darkmode="true"] .sni-spoofer-page,
+:root[data-theme="dark"] .sni-spoofer-page,
+[data-theme="dark"] .sni-spoofer-page,
+:root[data-dark="true"] .sni-spoofer-page,
+body.dark .sni-spoofer-page {
+  --ss-bg: #222222;
+  --ss-surface: #292929;
+  --ss-surface-muted: #323232;
+  --ss-text: #f0f0f0;
+  --ss-text-muted: #b8b8b8;
+  --ss-border: #404040;
+  --ss-control-border: #8a8a8a;
+  --ss-accent: #4da1c0;
+  --ss-accent-hover: #67b6d4;
+  --ss-accent-text: #111827;
+  --ss-link: #6ac1df;
+  --ss-focus: #6ac1df;
+  --ss-save: #20b47e;
+  --ss-save-hover: #34c792;
+  --ss-save-text: #111827;
+  --ss-ok-bg: #143528;
+  --ss-ok-border: #20b47e;
+  --ss-ok-text: #6ee7b7;
+  --ss-warn-bg: #362b12;
+  --ss-warn-border: #d4a238;
+  --ss-warn-text: #fcd34d;
+  --ss-err-bg: #3b1818;
+  --ss-err-border: #e06c69;
+  --ss-err-text: #fca5a5;
+  --ss-danger: #df6c69;
+  --ss-danger-hover: #e98582;
+  --ss-log-bg: #161616;
+  --ss-log-text: #e4e4e7;
+  --ss-log-muted: #a1a1aa;
+  --ss-log-warn: #fbbf24;
+  --ss-log-err: #fca5a5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-darkmode="false"]):not([data-theme="light"]) .sni-spoofer-page {
+    --ss-bg: #222222;
+    --ss-surface: #292929;
+    --ss-surface-muted: #323232;
+    --ss-text: #f0f0f0;
+    --ss-text-muted: #b8b8b8;
+    --ss-border: #404040;
+    --ss-control-border: #8a8a8a;
+    --ss-accent: #4da1c0;
+    --ss-accent-hover: #67b6d4;
+    --ss-accent-text: #111827;
+    --ss-link: #6ac1df;
+    --ss-focus: #6ac1df;
+    --ss-save: #20b47e;
+    --ss-save-hover: #34c792;
+    --ss-save-text: #111827;
+    --ss-ok-bg: #143528;
+    --ss-ok-border: #20b47e;
+    --ss-ok-text: #6ee7b7;
+    --ss-warn-bg: #362b12;
+    --ss-warn-border: #d4a238;
+    --ss-warn-text: #fcd34d;
+    --ss-err-bg: #3b1818;
+    --ss-err-border: #e06c69;
+    --ss-err-text: #fca5a5;
+    --ss-danger: #df6c69;
+    --ss-danger-hover: #e98582;
+    --ss-log-bg: #161616;
+    --ss-log-text: #e4e4e7;
+    --ss-log-muted: #a1a1aa;
+    --ss-log-warn: #fbbf24;
+    --ss-log-err: #fca5a5;
+  }
+}
+
+.sni-spoofer-page *,
+.sni-spoofer-page *::before,
+.sni-spoofer-page *::after {
+  box-sizing: border-box;
+}
+
+.sni-spoofer-page .ss-ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.sni-spoofer-page .ss-mono {
+  font-family: var(--ss-font-mono);
+  font-size: 0.8125rem;
+}
+
+.sni-spoofer-page [hidden] {
+  display: none !important;
+}
+
+.sni-spoofer-page .ss-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Interactive affordances & keyboard focus */
+.sni-spoofer-page button,
+.sni-spoofer-page input[type="checkbox"],
+.sni-spoofer-page input[type="file"],
+.sni-spoofer-page select,
+.sni-spoofer-page summary,
+.sni-spoofer-page label.ss-switch,
+.sni-spoofer-page label.ss-checkbox-label,
+.sni-spoofer-page [role="tab"] {
+  cursor: pointer;
+}
+
+.sni-spoofer-page button:disabled,
+.sni-spoofer-page input:disabled,
+.sni-spoofer-page select:disabled,
+.sni-spoofer-page [aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.sni-spoofer-page button:focus-visible,
+.sni-spoofer-page input:focus-visible,
+.sni-spoofer-page select:focus-visible,
+.sni-spoofer-page a:focus-visible,
+.sni-spoofer-page summary:focus-visible,
+.sni-spoofer-page [role="tab"]:focus-visible,
+.sni-spoofer-page input.ss-switch-input:focus-visible + .ss-switch-track {
+  outline: 2px solid var(--ss-focus);
+  outline-offset: 2px;
+}
+
+/* Map top title (aligns with LuCI .cbi-map h2 & .cbi-map-descr) */
+.sni-spoofer-page .ss-map-head {
+  margin: 0 0 12px 0;
+}
+
+.sni-spoofer-page .ss-map-title {
+  margin: 0 0 4px 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ss-text);
+}
+
+.sni-spoofer-page .ss-map-descr {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ss-text-muted);
+}
+
+/* Service control bar inside native fieldset.cbi-section (static position avoids cascade sticky <header>) */
+.sni-spoofer-page .ss-header {
+  position: static;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+}
+
+.sni-spoofer-page .ss-header-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sni-spoofer-page .ss-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Status badges & alerts */
+.sni-spoofer-page .ss-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  border-radius: var(--ss-radius-sm);
+  border: 1px solid var(--ss-border);
+  background-color: var(--ss-surface-muted);
+  color: var(--ss-text);
+  white-space: nowrap;
+}
+
+.sni-spoofer-page .ss-badge-ok {
+  background-color: var(--ss-ok-bg);
+  border-color: var(--ss-ok-border);
+  color: var(--ss-ok-text);
+}
+
+.sni-spoofer-page .ss-badge-warn {
+  background-color: var(--ss-warn-bg);
+  border-color: var(--ss-warn-border);
+  color: var(--ss-warn-text);
+}
+
+.sni-spoofer-page .ss-badge-err {
+  background-color: var(--ss-err-bg);
+  border-color: var(--ss-err-border);
+  color: var(--ss-err-text);
+}
+
+.sni-spoofer-page .ss-badge-muted {
+  background-color: var(--ss-surface-muted);
+  border-color: var(--ss-control-border);
+  color: var(--ss-text-muted);
+}
+
+.sni-spoofer-page .ss-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: currentColor;
+}
+
+.sni-spoofer-page .ss-alert {
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: var(--ss-radius-sm);
+  border: 1px solid var(--ss-border);
+  border-left-width: 4px;
+  background-color: var(--ss-surface);
+  color: var(--ss-text);
+  font-size: 0.8125rem;
+}
+
+.sni-spoofer-page .ss-alert-ok {
+  background-color: var(--ss-ok-bg);
+  border-color: var(--ss-ok-border);
+  color: var(--ss-ok-text);
+}
+
+.sni-spoofer-page .ss-alert-warn {
+  background-color: var(--ss-warn-bg);
+  border-color: var(--ss-warn-border);
+  color: var(--ss-warn-text);
+}
+
+.sni-spoofer-page .ss-alert-err {
+  background-color: var(--ss-err-bg);
+  border-color: var(--ss-err-border);
+  color: var(--ss-err-text);
+}
+
+.sni-spoofer-page .ss-alert-title {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.sni-spoofer-page .ss-alert-list {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+}
+
+/* LuCI-harmonized buttons (3px sharp radius, muted chrome, WCAG AA colors) */
+.sni-spoofer-page .ss-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 12px;
+  min-height: 32px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  border-radius: var(--ss-radius-sm);
+  border: 1px solid var(--ss-control-border);
+  background: var(--ss-surface);
+  color: var(--ss-text);
+  text-decoration: none;
+  box-shadow: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+
+.sni-spoofer-page .ss-btn:hover:not(:disabled) {
+  background-color: var(--ss-surface-muted);
+}
+
+.sni-spoofer-page .ss-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.sni-spoofer-page .ss-btn-primary {
+  background: var(--ss-accent);
+  border-color: var(--ss-accent);
+  color: var(--ss-accent-text);
+}
+
+.sni-spoofer-page .ss-btn-primary:hover:not(:disabled) {
+  background: var(--ss-accent-hover);
+  border-color: var(--ss-accent-hover);
+}
+
+.sni-spoofer-page .ss-btn-save {
+  background: var(--ss-save);
+  border-color: var(--ss-save);
+  color: var(--ss-save-text);
+}
+
+.sni-spoofer-page .ss-btn-save:hover:not(:disabled) {
+  background: var(--ss-save-hover);
+  border-color: var(--ss-save-hover);
+}
+
+.sni-spoofer-page .ss-btn-danger {
+  background: var(--ss-danger);
+  border-color: var(--ss-danger);
+  color: var(--ss-accent-text);
+}
+
+.sni-spoofer-page .ss-btn-danger:hover:not(:disabled) {
+  background: var(--ss-danger-hover);
+  border-color: var(--ss-danger-hover);
+}
+
+.sni-spoofer-page .ss-btn-outline-danger {
+  background: var(--ss-err-bg);
+  border-color: var(--ss-err-border);
+  color: var(--ss-err-text);
+}
+
+.sni-spoofer-page .ss-btn-outline-danger:hover:not(:disabled) {
+  background: var(--ss-danger);
+  border-color: var(--ss-danger);
+  color: var(--ss-accent-text);
+}
+
+.sni-spoofer-page .ss-btn-sm {
+  padding: 3px 9px;
+  min-height: 28px;
+  font-size: 0.75rem;
+}
+
+/* Accessible toggle switch (isolates from OpenWrt cascade.css checkbox pseudo-elements) */
+.sni-spoofer-page .ss-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  min-height: 32px;
+  border-radius: var(--ss-radius-sm);
+  border: 1px solid var(--ss-border);
+  background-color: var(--ss-surface-muted);
+  color: var(--ss-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin: 0;
+  position: relative;
+  user-select: none;
+}
+
+.sni-spoofer-page .ss-switch-bare {
+  padding: 2px 4px 2px 0;
+  border: 0;
+  background: transparent;
+}
+
+.sni-spoofer-page input.ss-switch-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+.sni-spoofer-page input.ss-switch-input::before,
+.sni-spoofer-page input.ss-switch-input::after {
+  content: none !important;
+  display: none !important;
+}
+
+.sni-spoofer-page .ss-switch-track {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--ss-control-border);
+  background-color: var(--ss-surface);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sni-spoofer-page .ss-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--ss-text-muted);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.sni-spoofer-page input.ss-switch-input:checked + .ss-switch-track {
+  background-color: var(--ss-save);
+  border-color: var(--ss-save);
+}
+
+.sni-spoofer-page input.ss-switch-input:checked + .ss-switch-track .ss-switch-thumb {
+  transform: translateX(16px);
+  background-color: var(--ss-save-text);
+}
+
+.sni-spoofer-page input.ss-switch-input:disabled + .ss-switch-track {
+  opacity: 0.6;
+}
+
+/* Standard compact inline checkbox matching OpenWrt 14x14 pseudo-element alignment */
+.sni-spoofer-page .ss-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 9px;
+  min-height: 30px;
+  border-radius: var(--ss-radius-sm);
+  border: 1px solid var(--ss-control-border);
+  background-color: var(--ss-surface);
+  color: var(--ss-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.sni-spoofer-page input[type="checkbox"]:not(.ss-switch-input) {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Native PassWall2 section flow (vertical full-width fieldset.cbi-section blocks) */
+.sni-spoofer-page .ss-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sni-spoofer-page .ss-section {
+  background-color: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-sm);
+  padding: 14px 16px;
+  margin: 0;
+  min-width: 0;
+}
+
+.sni-spoofer-page .ss-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--ss-border);
+}
+
+.sni-spoofer-page .ss-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ss-text);
+}
+
+.sni-spoofer-page .ss-card-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 0.75rem;
+  color: var(--ss-text-muted);
+}
+
+/* Telemetry KV grid (3-col desktop, 2-col tablet, 1-col mobile) */
+.sni-spoofer-page .ss-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 16px;
+  padding: 10px 12px;
+  margin: 0 0 14px 0;
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-sm);
+  background-color: var(--ss-surface-muted);
+}
+
+.sni-spoofer-page .ss-kv-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sni-spoofer-page .ss-kv-label {
+  color: var(--ss-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sni-spoofer-page .ss-kv-value {
+  margin: 0;
+  color: var(--ss-text);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* OpenWrt .cbi-tabmenu harmonized tabs */
+.sni-spoofer-page .ss-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 0;
+  margin: 0 0 0 0;
+  border-bottom: 1px solid var(--ss-border);
+}
+
+.sni-spoofer-page .ss-tab {
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--ss-radius-sm) var(--ss-radius-sm) 0 0;
+  background-color: transparent;
+  color: var(--ss-text-muted);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: -1px;
+}
+
+.sni-spoofer-page .ss-tab:hover {
+  color: var(--ss-text);
+  background-color: var(--ss-surface-muted);
+}
+
+.sni-spoofer-page .ss-tab[aria-selected="true"] {
+  background-color: var(--ss-surface);
+  border-color: var(--ss-border);
+  border-top: 2px solid var(--ss-accent);
+  color: var(--ss-link);
+}
+
+.sni-spoofer-page .ss-tabpanel {
+  padding-top: 12px;
+}
+
+.sni-spoofer-page .ss-tabpanel[hidden] {
+  display: none;
+}
+
+/* LuCI .cbi-value horizontal rows (for Global Settings & Binary Installer matching Basic Settings) */
+.sni-spoofer-page .ss-cbi-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sni-spoofer-page .ss-cbi-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 18px;
+  margin: 0;
+}
+
+.sni-spoofer-page .ss-cbi-title {
+  flex: 0 0 190px;
+  padding-top: 6px;
+  text-align: right;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ss-text);
+  margin: 0;
+}
+
+.sni-spoofer-page .ss-cbi-field {
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Compact 2-column form grid (used inside Listener cards) */
+.sni-spoofer-page .ss-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.sni-spoofer-page .ss-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sni-spoofer-page .ss-field-full {
+  grid-column: 1 / -1;
+}
+
+.sni-spoofer-page .ss-field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sni-spoofer-page .ss-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ss-text);
+  margin: 0;
+}
+
+.sni-spoofer-page .ss-hint {
+  font-size: 0.75rem;
+  color: var(--ss-text-muted);
+  margin: 0;
+}
+
+.sni-spoofer-page .ss-input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 32px;
+  min-height: 32px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ss-text);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-control-border);
+  border-radius: var(--ss-radius-sm);
+  box-shadow: none;
+  margin: 0;
+}
+
+.sni-spoofer-page input[type="file"].ss-input {
+  height: auto;
+  min-height: 34px;
+  padding: 5px 8px;
+}
+
+/* Native LuCI-styled single-line select wrapper (prevents Chromium wrapping native arrow onto line 2) */
+.sni-spoofer-page .ss-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 32px;
+  min-height: 32px;
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-control-border);
+  border-radius: var(--ss-radius-sm);
+  overflow: hidden;
+}
+
+.sni-spoofer-page .ss-select-wrap::after {
+  content: "\25BE";
+  position: absolute;
+  top: 0;
+  right: 9px;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  color: var(--ss-text-muted);
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+
+.sni-spoofer-page .ss-select {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0 28px 0 8px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  line-height: 30px;
+  color: var(--ss-text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--ss-radius-sm);
+  box-shadow: none;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sni-spoofer-page .ss-select option {
+  background-color: var(--ss-surface);
+  color: var(--ss-text);
+}
+
+.sni-spoofer-page .ss-input.ss-mono {
+  font-family: var(--ss-font-mono);
+}
+
+.sni-spoofer-page .ss-input-error {
+  border-color: var(--ss-err-border);
+  border-width: 2px;
+}
+
+.sni-spoofer-page .ss-field-error {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ss-err-text);
+}
+
+.sni-spoofer-page .ss-byte-counter {
+  font-family: var(--ss-font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ss-text-muted);
+}
+
+.sni-spoofer-page .ss-byte-counter-warn {
+  color: var(--ss-warn-text);
+}
+
+.sni-spoofer-page .ss-byte-counter-err {
+  color: var(--ss-err-text);
+}
+
+/* Progress meter */
+.sni-spoofer-page .ss-progress-wrap {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sni-spoofer-page .ss-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--ss-radius-sm);
+  border: 1px solid var(--ss-control-border);
+  background-color: var(--ss-surface-muted);
+  overflow: hidden;
+}
+
+.sni-spoofer-page .ss-progress-fill {
+  height: 100%;
+  width: 0%;
+  background-color: var(--ss-accent);
+  transition: width 0.15s ease;
+}
+
+.sni-spoofer-page .ss-progress-text {
+  font-size: 0.75rem;
+  color: var(--ss-text-muted);
+}
+
+/* Listeners section & cards */
+.sni-spoofer-page .ss-section-heading {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ss-text);
+}
+
+.sni-spoofer-page .ss-listeners-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sni-spoofer-page .ss-listener-card {
+  border: 1px solid var(--ss-border);
+  border-left: 3px solid var(--ss-ok-border);
+  border-radius: var(--ss-radius-sm);
+  padding: 12px 14px;
+  background-color: var(--ss-surface-muted);
+}
+
+.sni-spoofer-page .ss-listener-card.ss-listener-disabled {
+  border-left-color: var(--ss-control-border);
+  border-style: solid;
+  background-color: var(--ss-surface);
+}
+
+.sni-spoofer-page .ss-listener-card.ss-listener-disabled .ss-listener-id {
+  color: var(--ss-text-muted);
+}
+
+.sni-spoofer-page .ss-listener-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 12px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--ss-border);
+}
+
+.sni-spoofer-page .ss-listener-head-left {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.sni-spoofer-page .ss-listener-head-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.sni-spoofer-page .ss-listener-id {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--ss-text);
+}
+
+.sni-spoofer-page .ss-listener-route {
+  font-size: 0.75rem;
+  color: var(--ss-text-muted);
+}
+
+.sni-spoofer-page .ss-empty-state {
+  padding: 16px;
+  border: 1px dashed var(--ss-control-border);
+  border-radius: var(--ss-radius-sm);
+  background-color: var(--ss-surface-muted);
+  color: var(--ss-text-muted);
+  font-size: 0.8125rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.sni-spoofer-page .ss-form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ss-border);
+}
+
+/* JSON preview & Log console */
+.sni-spoofer-page .ss-json-preview,
+.sni-spoofer-page .ss-console {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--ss-radius-sm);
+  border: 1px solid var(--ss-border);
+  background-color: var(--ss-log-bg);
+  color: var(--ss-log-text);
+  font-family: var(--ss-font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  overflow: auto;
+  max-height: 300px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sni-spoofer-page .ss-console-line {
+  display: block;
+}
+
+.sni-spoofer-page .ss-console-warn {
+  color: var(--ss-log-warn);
+}
+
+.sni-spoofer-page .ss-console-err {
+  color: var(--ss-log-err);
+}
+
+.sni-spoofer-page .ss-console-muted {
+  color: var(--ss-log-muted);
+}
+
+.sni-spoofer-page .ss-link {
+  color: var(--ss-link);
+  text-decoration: underline;
+  font-weight: 500;
+  font-size: 0.8125rem;
+}
+
+.sni-spoofer-page .ss-row-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .sni-spoofer-page .ss-kv-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sni-spoofer-page .ss-cbi-title {
+    flex: 0 0 100%;
+    text-align: left;
+    padding-top: 0;
+  }
+
+  .sni-spoofer-page .ss-cbi-field {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  .sni-spoofer-page .ss-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .sni-spoofer-page .ss-kv-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (pointer: coarse), (max-width: 768px) {
+  .sni-spoofer-page .ss-btn,
+  .sni-spoofer-page .ss-tab,
+  .sni-spoofer-page .ss-input,
+  .sni-spoofer-page .ss-select-wrap,
+  .sni-spoofer-page .ss-switch,
+  .sni-spoofer-page .ss-checkbox-label {
+    min-height: 44px;
+  }
+
+  .sni-spoofer-page .ss-select-wrap {
+    height: 44px;
+  }
+
+  .sni-spoofer-page .ss-select {
+    height: 100%;
+    min-height: 0;
+    line-height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sni-spoofer-page .ss-btn,
+  .sni-spoofer-page .ss-progress-fill,
+  .sni-spoofer-page .ss-switch-track,
+  .sni-spoofer-page .ss-switch-thumb {
+    transition: none;
+  }
+}
