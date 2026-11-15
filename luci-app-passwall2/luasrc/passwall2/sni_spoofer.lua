@@ -20,8 +20,8 @@ M.KNOWN_ASSETS = {
 M.DEFAULT_BIN_PATH = "/usr/bin/sni-spoof-rs"
 M.LOG_FILE = "/tmp/log/passwall2_sni_spoofer.log"
 M.PID_FILE = "/var/run/passwall2_sni_spoofer.pid"
-M.RUNTIME_DIR = "/tmp/etc/passwall2/sni_spoofer"
-M.CONFIG_JSON_PATH = "/tmp/etc/passwall2/sni_spoofer/config.json"
+M.RUNTIME_DIR = "/tmp/etc/passwall2_sni_spoofer"
+M.CONFIG_JSON_PATH = "/tmp/etc/passwall2_sni_spoofer/config.json"
 M.LOG_MAX_BYTES = 524288
 M.LOG_KEEP_BYTES = 262144
 M.FAKE_SNI_MAX_BYTES = 219
@@ -44,6 +44,37 @@ local ELF_MACHINES = {
 }
 
 local function new_cursor(uci_dir)
+	if uci_dir and uci_dir ~= "" then
+		-- OpenWrt 25.12 luci.model.uci stubs set_confdir() out via rpcd, so use libuci directly for isolated dirs
+		local ok, uci_lib = pcall(require, "uci")
+		if ok and uci_lib and uci_lib.cursor then
+			local savedir = uci_dir .. "/.uci"
+			fs.mkdirr(savedir)
+			local raw = uci_lib.cursor(uci_dir, savedir)
+			return {
+				get = function(_, ...) return raw:get(...) end,
+				get_all = function(_, ...) return raw:get_all(...) end,
+				foreach = function(_, ...) return raw:foreach(...) end,
+				set = function(_, ...) return raw:set(...) end,
+				add = function(_, ...) return raw:add(...) end,
+				delete = function(_, ...) return raw:delete(...) end,
+				delete_all = function(_, cfg, stype)
+					local ids = {}
+					raw:foreach(cfg, stype, function(s)
+						if s and s[".name"] then ids[#ids + 1] = s[".name"] end
+					end)
+					for _, id in ipairs(ids) do
+						raw:delete(cfg, id)
+					end
+					return true
+				end,
+				commit = function(_, cfg)
+					raw:save(cfg)
+					return raw:commit(cfg)
+				end,
+			}
+		end
+	end
 	local cursor = require("luci.model.uci").cursor()
 	if uci_dir and uci_dir ~= "" and cursor.set_confdir then
 		cursor:set_confdir(uci_dir)
@@ -230,7 +261,7 @@ local function validate_global(raw, errs)
 	local bp, bp_err = validate_bin_path(g.bin_path or M.DEFAULT_BIN_PATH)
 	if bp_err then errs["global.bin_path"] = bp_err else out.bin_path = bp end
 
-	local rlog = trim(tostring(g.rust_log or "warn")):lower()
+	local rlog = trim(tostring(g.rust_log or "info")):lower()
 	if not VALID_RUST_LOG[rlog] then
 		errs["global.rust_log"] = "Must be one of error, warn, info, debug, trace"
 	else
@@ -415,7 +446,7 @@ function M.get_config(uci_dir)
 	local global_cfg = {
 		enabled = tostring(g.enabled or "0") == "1" and "1" or "0",
 		bin_path = (type(g.bin_path) == "string" and g.bin_path ~= "") and g.bin_path or M.DEFAULT_BIN_PATH,
-		rust_log = (type(g.rust_log) == "string" and g.rust_log ~= "") and g.rust_log or "warn",
+		rust_log = (type(g.rust_log) == "string" and g.rust_log ~= "") and g.rust_log or "info",
 		idle_timeout = tostring(g.idle_timeout or ""),
 		buffer_size = tostring(g.buffer_size or "8"),
 		graceful_shutdown_sec = tostring(g.graceful_shutdown_sec or "0"),

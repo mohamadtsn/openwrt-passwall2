@@ -1101,6 +1101,13 @@ local function read_sni_spoofer_json()
 	return type(parsed) == "table" and parsed or nil
 end
 
+local function sync_sni_spoofer_boot_service(enabled)
+	local nixio_fs = fs or require("nixio.fs")
+	if nixio_fs.access("/etc/init.d/passwall2_sni_spoofer") then
+		os.execute("/etc/init.d/passwall2_sni_spoofer " .. (enabled and "enable" or "disable") .. " >/dev/null 2>&1")
+	end
+end
+
 function sni_spoofer_status()
 	local ss = require "luci.passwall2.sni_spoofer"
 	http_write_json_ok(ss.get_status())
@@ -1130,9 +1137,7 @@ function sni_spoofer_control()
 		end
 		cursor:set(c_config, "global_sni_spoofer", "enabled", en)
 		cursor:commit(c_config)
-		if (fs and fs.access or require("nixio.fs").access)("/etc/init.d/passwall2_sni_spoofer") then
-			os.execute("/etc/init.d/passwall2_sni_spoofer " .. (en == "1" and "enable" or "disable") .. " >/dev/null 2>&1")
-		end
+		sync_sni_spoofer_boot_service(en == "1")
 		http_write_json_ok(ss.get_status())
 	else
 		http_write_json_error({ error = "Unsupported control action" })
@@ -1152,6 +1157,7 @@ function sni_spoofer_save()
 		http_write_json_error({ error = "Validation failed", errors = res.errors })
 		return
 	end
+	sync_sni_spoofer_boot_service(res.config and res.config.global and res.config.global.enabled == "1")
 	local do_restart = (body.restart == true) or (http.formvalue("restart") == "1")
 	if do_restart then
 		local rc, out = api.exec_call("/etc/init.d/passwall2_sni_spoofer restart 2>&1")

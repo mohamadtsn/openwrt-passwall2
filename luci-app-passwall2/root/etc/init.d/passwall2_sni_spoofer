@@ -14,7 +14,7 @@ boot() {
 	local enabled
 	enabled="$(uci -q get passwall2.global_sni_spoofer.enabled 2>/dev/null || true)"
 	[ "$enabled" = "1" ] || return 0
-	/usr/share/passwall2/sni_spoofer.sh start
+	/usr/share/passwall2/sni_spoofer.sh boot
 }
 
 start() {

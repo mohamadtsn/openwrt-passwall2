@@ -1,0 +1,56 @@
+#!/bin/sh
+
+[ "$ACTION" = "ifup" ] || [ "$ACTION" = "ifupdate" ] || [ "$ACTION" = "ifdown" ] || exit 0
+[ -n "${DEVICE:-}" ] || exit 0
+
+RUNTIME_DIR="/tmp/etc/passwall2_sni_spoofer"
+MANUAL_STOP_FILE="$RUNTIME_DIR/manual_stop"
+IFACE_STATE_FILE="$RUNTIME_DIR/iface_state"
+LOCK_FILE="/var/lock/passwall2_sni_spoofer_hotplug.lock"
+SPOOFER_SH="/usr/share/passwall2/sni_spoofer.sh"
+
+[ -x "$SPOOFER_SH" ] || exit 0
+enabled="$(uci -q get passwall2.global_sni_spoofer.enabled 2>/dev/null || true)"
+[ "$enabled" = "1" ] || exit 0
+
+if [ "$ACTION" = "ifdown" ]; then
+	if [ -f "$IFACE_STATE_FILE" ] && grep -q "|${DEVICE}|" "$IFACE_STATE_FILE" 2>/dev/null; then
+		rm -f "$IFACE_STATE_FILE"
+	fi
+	exit 0
+fi
+
+[ -f "$MANUAL_STOP_FILE" ] && exit 0
+
+device_matches_upstream() {
+	local default_dev default6_dev
+	default_dev="$(ip route show default 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); break } exit }')"
+	default6_dev="$(ip -6 route show default 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); break } exit }')"
+	{ [ "$default_dev" = "$DEVICE" ] || [ "$default6_dev" = "$DEVICE" ]; } && return 0
+
+	if "$SPOOFER_SH" _uses_device "$DEVICE" 2>/dev/null; then
+		return 0
+	fi
+	return 1
+}
+
+device_matches_upstream || exit 0
+
+mkdir -p /var/lock || exit 1
+
+(
+	exec 9>"$LOCK_FILE" || exit 1
+	flock -x 9 || exit 0
+
+	[ -f "$MANUAL_STOP_FILE" ] && exit 0
+	enabled_now="$(uci -q get passwall2.global_sni_spoofer.enabled 2>/dev/null || true)"
+	[ "$enabled_now" = "1" ] || exit 0
+
+	if ! "$SPOOFER_SH" status >/dev/null 2>&1; then
+		"$SPOOFER_SH" start 9>&- >/dev/null 2>&1
+	elif [ "$ACTION" = "ifup" ] && "$SPOOFER_SH" _routes_changed 9>&- >/dev/null 2>&1; then
+		"$SPOOFER_SH" restart 9>&- >/dev/null 2>&1
+	fi
+) </dev/null >/dev/null 2>&1 &
+
+exit 0

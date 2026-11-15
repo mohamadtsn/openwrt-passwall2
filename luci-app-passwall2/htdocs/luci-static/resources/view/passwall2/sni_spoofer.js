@@ -269,7 +269,7 @@
       errors["global.bin_path"] = "Binary path must be an absolute path without '..' or whitespace";
     }
 
-    var rustLog = String(g.rust_log || "warn").trim().toLowerCase();
+    var rustLog = String(g.rust_log || "info").trim().toLowerCase();
     if (!VALID_LOG_LEVELS[rustLog]) {
       errors["global.rust_log"] = "Must be one of error, warn, info, debug, trace";
     }
@@ -458,7 +458,7 @@
       global: {
         enabled: isEnabledFlag(g.enabled) ? "1" : "0",
         bin_path: String(g.bin_path || DEFAULT_BIN_PATH),
-        rust_log: String(g.rust_log || "warn"),
+        rust_log: String(g.rust_log || "info"),
         idle_timeout: String(g.idle_timeout || ""),
         buffer_size: String(g.buffer_size || "8"),
         graceful_shutdown_sec: String(g.graceful_shutdown_sec || "0"),
@@ -1597,7 +1597,7 @@
       stopLogPoll();
       if (!boot.urls.log) return;
       if (typeof window !== "undefined" && window.XHR && typeof window.XHR.poll === "function") {
-        state.logPollHandle = window.XHR.poll(2.5, boot.urls.log, { limit: 300 }, function (res, json) {
+        state.logPollHandle = window.XHR.poll(3, boot.urls.log, { limit: 300 }, function (res, json) {
           if (!json && res && typeof res.responseText === "string") {
             try {
               json = JSON.parse(res.responseText);
