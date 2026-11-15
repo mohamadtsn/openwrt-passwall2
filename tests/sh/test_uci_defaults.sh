@@ -27,7 +27,7 @@ cp /usr/share/passwall2/0_default_config "$TMP_UCI/passwall2"
 
 assert_eq "$(uci -c "$TMP_UCI" -q get passwall2.global_sni_spoofer.enabled || true)" "0" "default enabled"
 assert_eq "$(uci -c "$TMP_UCI" -q get passwall2.global_sni_spoofer.bin_path || true)" "/usr/bin/sni-spoof-rs" "default bin_path"
-assert_eq "$(uci -c "$TMP_UCI" -q get passwall2.global_sni_spoofer.rust_log || true)" "warn" "default rust_log"
+assert_eq "$(uci -c "$TMP_UCI" -q get passwall2.global_sni_spoofer.rust_log || true)" "info" "default rust_log"
 assert_eq "$(uci -c "$TMP_UCI" -q get passwall2.global_sni_spoofer.buffer_size || true)" "8" "default buffer_size"
 assert_eq "$(uci -c "$TMP_UCI" -q get passwall2.global_sni_spoofer.graceful_shutdown_sec || true)" "0" "default graceful_shutdown_sec"
 assert_eq "$(uci -c "$TMP_UCI" -q get passwall2.global_sni_spoofer.github_asset || true)" "sni-spoof-rs-google-wifi-armv7-musl" "default github_asset"

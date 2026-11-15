@@ -41,7 +41,7 @@ cleanup() {
 			rm -f /usr/bin/sni-spoof-rs
 		fi
 		rm -f /tmp/log/passwall2_sni_spoofer.log
-		rm -rf /tmp/pw2_sni_dl_* /tmp/pw2_sni_ul_* /tmp/etc/passwall2/sni_spoofer/dl_*
+		rm -rf /tmp/pw2_sni_dl_* /tmp/pw2_sni_ul_* /tmp/etc/passwall2_sni_spoofer/dl_*
 		uci revert passwall2 >/dev/null 2>&1 || true
 	" >/dev/null 2>&1 || true
 	rm -rf "$TMP_DIR" "$COOKIE_JAR"
@@ -321,7 +321,7 @@ assert d["running"] is True and isinstance(d["pid"], int) and d["pid"] > 0, d
 print(d["pid"])
 ' "$TMP_DIR/running1.json")"
 
-docker exec "$CONTAINER" cat /tmp/etc/passwall2/sni_spoofer/config.json > "$TMP_DIR/live_config.json"
+docker exec "$CONTAINER" cat /tmp/etc/passwall2_sni_spoofer/config.json > "$TMP_DIR/live_config.json"
 python3 -c '
 import json, sys
 cfg = json.load(open(sys.argv[1]))

@@ -218,4 +218,38 @@ assert d["data"]["config"]["global"]["enabled"] == "0", d["data"]
 docker exec passwall2-dev sh -c 'test ! -e /etc/rc.d/S99passwall2_sni_spoofer && [ "$(uci -q get passwall2.global_sni_spoofer.enabled)" = "0" ]' \
 	|| fail "set_boot=0 did not remove S99 symlink and set UCI enabled=0"
 
+# 6. sni_spoofer_save with enabled=1 also syncs S99 symlink
+SAVE_BOOT_PAYLOAD="$(python3 -c '
+import json
+print(json.dumps({
+    "global": {
+        "enabled": "1",
+        "bin_path": "/usr/bin/sni-spoof-rs",
+        "rust_log": "info",
+        "idle_timeout": "",
+        "buffer_size": "8",
+        "graceful_shutdown_sec": "0",
+        "github_asset": "sni-spoof-rs-google-wifi-armv7-musl"
+    },
+    "listeners": [{
+        "enabled": "1",
+        "remarks": "Cloudflare",
+        "listen": "127.0.0.1:42443",
+        "connect": "172.67.139.236:443",
+        "fake_sni": "security.vercel.com",
+        "conn_timeout_sec": "5",
+        "handshake_timeout_sec": "2",
+        "keepalive_time_sec": "11",
+        "keepalive_interval_sec": "2"
+    }]
+}))')"
+
+curl -fsS -b "$COOKIE_JAR" \
+	--data-urlencode "token=$TOKEN" \
+	--data-urlencode "payload=$SAVE_BOOT_PAYLOAD" \
+	"${API_BASE}/sni_spoofer_save" -o "$TMP_DIR/save_boot.json"
+
+docker exec passwall2-dev sh -c 'test -L /etc/rc.d/S99passwall2_sni_spoofer && [ "$(uci -q get passwall2.global_sni_spoofer.enabled)" = "1" ]' \
+	|| fail "sni_spoofer_save enabled=1 did not create S99 symlink"
+
 echo "PASS: test_controller_rpc.sh (CSRF + status + save + log + set_boot)"

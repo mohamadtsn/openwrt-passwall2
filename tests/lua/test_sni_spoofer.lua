@@ -331,9 +331,13 @@ assert_eq(last_res.status, "success", "chunked upload completes")
 assert_eq(read_bytes(up_target), upload_elf, "chunked upload matches original ELF")
 
 -- 8. Isolated UCI roundtrip & runtime config JSON file
+assert_eq(ss.RUNTIME_DIR, "/tmp/etc/passwall2_sni_spoofer", "RUNTIME_DIR isolated outside /tmp/etc/passwall2")
+assert_eq(ss.CONFIG_JSON_PATH, "/tmp/etc/passwall2_sni_spoofer/config.json", "CONFIG_JSON_PATH isolated outside /tmp/etc/passwall2")
+
 local tmp_uci = tmp .. "/uci"
 fs.mkdirr(tmp_uci)
 write_bytes(tmp_uci .. "/passwall2", "config global 'global'\n\toption enabled '0'\n")
+assert_eq(ss.get_config(tmp_uci).global.rust_log, "info", "default rust_log falls back to info")
 local save_res = ss.save_config(base_payload, { uci_dir = tmp_uci, sysupgrade_conf = sysupgrade_tmp })
 assert_true(save_res.ok, "save_config persists valid UCI")
 local loaded = ss.get_config(tmp_uci)
